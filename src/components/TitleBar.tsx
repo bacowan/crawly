@@ -7,7 +7,7 @@ const TABS = [
   { label: "about",       href: "/about" },
 ] as const;
 
-const ACCENT = "#c14a37";
+const ACCENT = "#6b3fa0";
 
 interface TitleBarProps {
   current: (typeof TABS)[number]["label"];
@@ -31,7 +31,7 @@ export default function TitleBar({ current }: TitleBarProps) {
         <div
           className="w-6 h-6 rounded-full"
           style={{
-            background: `radial-gradient(circle at 35% 30%, #fff, ${ACCENT} 60%, #912b1f 100%)`,
+            background: `radial-gradient(circle at 35% 30%, #fff, ${ACCENT} 60%, #2b0060 100%)`,
             boxShadow: "inset 0 -2px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.25)",
           }}
         />

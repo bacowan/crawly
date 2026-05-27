@@ -35,7 +35,7 @@ function shade(hex: string, amt: number): string {
   return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-const ACCENT = "#c14a37";
+const ACCENT = "#6b3fa0";
 
 // Inline glossy pill label (READING / FELT)
 function LabelPill({
