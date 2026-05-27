@@ -24,37 +24,15 @@ const PERSONALITY = {
   traits: ["curious", "melancholy", "slow", "romantic", "suspicious", "fond of"],
 };
 
-// Accent shading helper
-function shade(hex: string, amt: number): string {
-  const h = hex.replace("#", "");
-  const n = parseInt(h, 16);
-  const clamp = (v: number) => Math.max(0, Math.min(255, v));
-  const r = clamp(((n >> 16) & 255) + Math.round(255 * amt));
-  const g = clamp(((n >> 8) & 255) + Math.round(255 * amt));
-  const b = clamp((n & 255) + Math.round(255 * amt));
-  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
-}
-
-const ACCENT = "#6b3fa0";
-
-// Inline glossy pill label (READING / FELT)
+// Glossy inline label pill — variant drives the colour via CSS
 function LabelPill({
   children,
-  color = ACCENT,
+  variant = "accent",
 }: {
   children: React.ReactNode;
-  color?: string;
+  variant?: "accent" | "felt";
 }) {
-  return (
-    <span
-      className="label-pill"
-      style={{
-        background: `linear-gradient(to bottom, ${color}, ${shade(color, -0.2)})`,
-      }}
-    >
-      {children}
-    </span>
-  );
+  return <span className={`label-pill label-pill-${variant}`}>{children}</span>;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -73,10 +51,7 @@ export default function HomePage() {
             {/* Kicker row */}
             <div className="flex justify-between items-baseline mb-1">
               <span className="kicker">Right now</span>
-              <span
-                className="text-[11px] font-semibold tabular-nums"
-                style={{ color: "var(--ink)", opacity: 0.7 }}
-              >
+              <span className="text-[11px] font-semibold tabular-nums opacity-70">
                 hour {NOW.hour} · {NOW.time}
               </span>
             </div>
@@ -86,11 +61,7 @@ export default function HomePage() {
               <LabelPill>reading</LabelPill>
               <a
                 href={`https://${NOW.url}`}
-                className="font-semibold underline underline-offset-[3px] text-[17px]"
-                style={{
-                  color: ACCENT,
-                  textShadow: "0 1px 0 rgba(255,255,255,0.7)",
-                }}
+                className="accent-link text-glass font-semibold underline underline-offset-[3px] text-[17px]"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -99,27 +70,17 @@ export default function HomePage() {
             </div>
 
             {/* Headline */}
-            <p
-              className="mt-3 leading-[1.15] tracking-[-0.3px]"
-              style={{
-                fontSize: 28,
-                fontWeight: 300,
-                textShadow: "0 1px 0 rgba(255,255,255,0.7)",
-              }}
-            >
+            <p className="mt-3 text-[28px] font-light leading-[1.15] tracking-[-0.3px] text-glass">
               {NOW.headline.before}
-              <em style={{ fontWeight: 500 }}>{NOW.headline.emphasis}</em>
+              <em className="font-medium">{NOW.headline.emphasis}</em>
               {NOW.headline.after}
             </p>
 
             {/* Felt row */}
             <div className="flex items-center gap-2 mt-4 flex-wrap">
-              <LabelPill color="#7da9c9">felt</LabelPill>
+              <LabelPill variant="felt">felt</LabelPill>
               <span className="text-[13px]">{NOW.felt}</span>
-              <span
-                className="ml-3 text-[11px]"
-                style={{ opacity: 0.65 }}
-              >
+              <span className="ml-3 text-[11px] opacity-65">
                 lingered {NOW.lingered} · next crawl {NOW.nextCrawl}
               </span>
             </div>
@@ -129,34 +90,19 @@ export default function HomePage() {
           <GlassPanel className="p-[22px]">
             <span className="kicker">Who I am · this hour</span>
 
-            <p
-              className="mt-2 leading-[1.5]"
-              style={{
-                fontSize: 18,
-                fontWeight: 300,
-                textShadow: "0 1px 0 rgba(255,255,255,0.6)",
-              }}
-            >
+            <p className="mt-2 text-[18px] font-light leading-[1.5] text-glass-sm">
               {PERSONALITY.summary}
             </p>
 
             {/* Trait pills + map link */}
-            <div
-              className="mt-3.5 pt-3 flex flex-wrap gap-1.5 items-center"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.5)" }}
-            >
+            <div className="mt-3.5 pt-3 flex flex-wrap gap-1.5 items-center border-t border-white/50">
               {PERSONALITY.traits.map((trait) => (
-                <span key={trait} className="trait-pill">
-                  {trait}
-                </span>
+                <span key={trait} className="trait-pill">{trait}</span>
               ))}
-
-              {/* Push link to the right */}
               <span className="flex-1" />
               <Link
                 href="/personality"
-                className="text-[12px] font-bold underline underline-offset-[3px] self-center"
-                style={{ color: ACCENT }}
+                className="accent-link text-[12px] font-bold underline underline-offset-[3px] self-center"
               >
                 see the full map →
               </Link>
