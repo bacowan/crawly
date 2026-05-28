@@ -1,0 +1,6 @@
+{
+    "prompts": {
+
+    },
+    "default-crawl-url": "https://en.wikipedia.org/wiki/Special:Random"
+}
