@@ -1,6 +1,6 @@
 import sql from "@/db/db";
 
-export default async function crawl(batchSize: Number, botId: string) {
+export default async function crawl(botId: string) {
     
     // 1. If there are no URLs in crawl history, start from an arbitrary page
     // (configurable in .env, maybe start with a random wikipedia page).
