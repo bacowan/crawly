@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "crawl": "tsx --env-file=.env scripts/crawl.ts",
+    "new-bot": "tsx --env-file=.env scripts/new_bot.ts"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -24,6 +26,7 @@
     "eslint-config-next": "16.2.6",
     "supabase": "^2.101.0",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

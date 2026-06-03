@@ -1,7 +1,8 @@
 create table crawl_history (
   id bigint primary key generated always as identity,
-  bot_id bigint references bot(id),
-  url text,
-  log_time timestamptz, -- when the entry should be displayed
-  created_at timestamptz default now() -- when the entry was truly created
+  bot_id bigint not null references bot(id),
+  url text not null,
+  thoughts text not null,
+  log_time timestamptz not null, -- when the entry should be displayed
+  created_at timestamptz not null default now() -- when the entry was truly created
 );
