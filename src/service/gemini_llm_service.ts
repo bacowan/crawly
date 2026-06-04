@@ -1,0 +1,53 @@
+import { LlmService, PageAnalysis, PageAnalysisSchema, PersonalityProfile } from "./llm_service"
+import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL
+if (!GEMINI_MODEL) {
+    throw "GEMINI_MODEL not configured"
+}
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+if (!GEMINI_API_KEY) {
+    throw "GEMINI_API_KEY not configured"
+}
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const GeminiLlmService: LlmService = {
+    processPage: async (pageText: string, personality: PersonalityProfile): Promise<PageAnalysis> => {
+        const prompt = `You are a curious bot that develops a personality by browsing the web.
+
+            Here is your current personality and interests:
+            - summary: a brief summary of the personality
+            - interests: a list of things that you are interested in or disinterested in and their weights, ranging from -1 (disinterest) to 1 (interest)
+            - traits: a list of personality traits and their weights
+            - links: information about links in the page
+            ${JSON.stringify(personality, null, 2)}
+
+            You have just read the following page:
+            Content: ${pageText}
+
+            Analyze the page from your perspective. Consider:
+            - What stands out to you given your existing interests?
+            - Did anything surprise or intrigue you?
+            - Are there any new topics you find yourself curious about?
+            - How does this page make you feel?`
+
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: "Explain how AI works in a few words",
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: z.toJSONSchema(PageAnalysisSchema)
+            }
+        });
+        if (response.text) {
+            return PageAnalysisSchema.parse(JSON.parse(response.text));
+        }
+        else {
+            throw "Failed to get response"
+        }
+    }
+}
+
+export default GeminiLlmService
