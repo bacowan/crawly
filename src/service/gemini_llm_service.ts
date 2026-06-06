@@ -15,7 +15,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const GeminiLlmService: LlmService = {
     processPage: async (pageText: string, personality: PersonalityProfile): Promise<PageAnalysis> => {
-        const prompt = `You are a curious bot that develops a personality by browsing the web.
+        const prompt = `You are a bot that develops a personality by browsing the web. You have no domain knowledge about anything except for that mentioned.
 
             Here is your current personality and interests:
             - summary: a brief summary of the personality

@@ -121,15 +121,18 @@ export default async function crawl(logTime: Date) {
         }
     }
 
-    const profileRows = await sql<{ name: string, magnitude: number, type: string }[]>`
-        select name, magnitude, 'interest' as type from interests where bot_id = ${botId}
+    const profileRows = await sql<{ name: string | null, magnitude: number | null, topic: string | null, summary: string | null, type: string }[]>`
+        select name, magnitude, null as topic, null as summary, 'interest' as type from interests where bot_id = ${botId}
         union all
-        select name, magnitude, 'trait' as type from personality where bot_id = ${botId}
+        select name, magnitude, null as topic, null as summary, 'trait' as type from personality where bot_id = ${botId}
+        union all
+        select null as name, null as magnitude, topic, summary, 'knowledge' as type from knowledge where bot_id = ${botId}
     `
     const personalityProfile = {
         summary: latestBot.personality_summary ?? "",
-        interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name, weight: r.magnitude })),
-        traits: profileRows.filter(r => r.type === 'trait').map(r => ({ name: r.name, weight: r.magnitude }))
+        interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name!, weight: r.magnitude! })),
+        traits: profileRows.filter(r => r.type === 'trait').map(r => ({ name: r.name!, weight: r.magnitude! })),
+        knowledge: profileRows.filter(r => r.type === 'knowledge').map(r => ({ topic: r.topic!, knowledge: r.summary! })),
     }
 
     // Now that the page has been read, do some processing on it.
@@ -142,8 +145,8 @@ export default async function crawl(logTime: Date) {
             insert into crawl_history ${sql({
                 bot_id: botId,
                 url: page.url,
-                thoughts: result.memory.summary,
-                summary: result.memory.key_facts,
+                thoughts: result.memory.thoughts,
+                summary: result.memory.summary,
                 log_time: logTime
             })} returning id
         `
@@ -217,6 +220,29 @@ export default async function crawl(logTime: Date) {
             end
             where bot_id = ${botId} ${traitDecayFilter}
         `;
+
+        // Update knowledge: overwrite existing topics, insert new ones
+        const knowledgeUpdates = result.personality_updates.knowledge;
+        if (knowledgeUpdates.length > 0) {
+            const existingKnowledgeTopics = new Set(
+                (await tx<{ topic: string }[]>`select topic from knowledge where bot_id = ${botId}`).map(r => r.topic.toLowerCase())
+            );
+            const existingKnowledge = knowledgeUpdates.filter(k => existingKnowledgeTopics.has(k.topic.toLowerCase()));
+            const newKnowledge = knowledgeUpdates.filter(k => !existingKnowledgeTopics.has(k.topic.toLowerCase()));
+
+            if (existingKnowledge.length > 0) {
+                const topics = existingKnowledge.map(k => k.topic.toLowerCase());
+                const summaries = existingKnowledge.map(k => k.knowledge);
+                await tx`
+                    update knowledge set summary = updates.summary
+                    from unnest(${topics}::text[], ${summaries}::text[]) as updates(topic, summary)
+                    where knowledge.bot_id = ${botId} and lower(knowledge.topic) = updates.topic
+                `;
+            }
+
+            if (newKnowledge.length > 0)
+                await tx`insert into knowledge ${sql(newKnowledge.map(k => ({ bot_id: botId, topic: k.topic, summary: k.knowledge })))}`;
+        }
     })
 
 
