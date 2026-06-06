@@ -118,19 +118,15 @@ export default async function crawl(logTime: Date) {
         }
     }
 
-    const profileRows = await sql<{ name: string | null, magnitude: number | null, topic: string | null, subtopic: string | null, summary: string | null, type: string }[]>`
-        select name, magnitude, null as topic, null as subtopic, null as summary, 'interest' as type from interests where bot_id = ${botId}
+    const profileRows = await sql<{ name: string, magnitude: number, type: string }[]>`
+        select name, magnitude, 'interest' as type from interests where bot_id = ${botId}
         union all
-        select name, magnitude, null as topic, null as subtopic, null as summary, 'trait' as type from personality where bot_id = ${botId}
-        union all
-        select null as name, null as magnitude, topic, subtopic, summary, 'knowledge' as type from knowledge where bot_id = ${botId}
+        select name, magnitude, 'trait' as type from personality where bot_id = ${botId}
     `
-    // TODO: for knowledge, only include relevant topics (RAG?)
     const personalityProfile = {
         summary: latestBot.personality_summary ?? "",
-        interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name!, weight: r.magnitude! })),
-        traits: profileRows.filter(r => r.type === 'trait').map(r => ({ name: r.name!, weight: r.magnitude! })),
-        knowledge: profileRows.filter(r => r.type === 'knowledge').map(r => ({ topic: r.topic!, subtopic: r.subtopic!, knowledge: r.summary! })),
+        interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name, weight: r.magnitude })),
+        traits: profileRows.filter(r => r.type === 'trait').map(r => ({ name: r.name, weight: r.magnitude })),
     }
 
     // Now that the page has been read, do some processing on it.
@@ -219,13 +215,6 @@ export default async function crawl(logTime: Date) {
             where bot_id = ${botId} ${traitDecayFilter}
         `;
 
-        const knowledgeUpdates = result.personality_updates.knowledge;
-        if (knowledgeUpdates.length > 0) {
-            await tx`
-                insert into knowledge ${sql(knowledgeUpdates.map(k => ({ bot_id: botId, topic: k.topic, subtopic: k.subtopic, summary: k.knowledge })))}
-                on conflict (bot_id, lower(topic), lower(subtopic)) do update set summary = excluded.summary
-            `;
-        }
     })
 
 
