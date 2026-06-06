@@ -11,6 +11,7 @@ export const PageAnalysisSchema = z.object({
     traits: z.array(z.string().max(30)).max(3).describe("personality traits that have changed by reading this page."),
     knowledge: z.array(z.object({
       topic: z.string().max(15).describe("Single broad subject domain. 'aviation' not 'USAAF Demobilization', 'military' not 'USAAF Autonomy'"),
+      subtopic: z.string().max(30).describe("More specific area within the topic. 'jet propulsion' not 'aviation', 'World War II' not 'military history'"),
       knowledge: z.string()
     }))
   }).describe("how your personality has changed by reading this page. Leave arrays empty if nothing has changed. Include existing values if relevant"),
@@ -34,6 +35,7 @@ export interface PersonalityProfile {
     }[],
     knowledge: {
       topic: string,
+      subtopic: string,
       knowledge: string
     }[]
 }
