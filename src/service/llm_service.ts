@@ -10,7 +10,7 @@ export const PageAnalysisSchema = z.object({
     disinterests: z.array(z.string().max(50)).max(2).describe("topics that you found particularily disinteresting in this page, from most disinteresting to least disinteresting"),
     traits: z.array(z.string().max(30)).max(3).describe("personality traits that have changed by reading this page."),
     knowledge: z.array(z.object({
-      topic: z.string().max(30).describe("Keep this general"),
+      topic: z.string().max(15).describe("Single broad subject domain. 'aviation' not 'USAAF Demobilization', 'military' not 'USAAF Autonomy'"),
       knowledge: z.string()
     }))
   }).describe("how your personality has changed by reading this page. Leave arrays empty if nothing has changed. Include existing values if relevant"),

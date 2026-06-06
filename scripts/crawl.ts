@@ -125,6 +125,7 @@ export default async function crawl(logTime: Date) {
         union all
         select null as name, null as magnitude, topic, summary, 'knowledge' as type from knowledge where bot_id = ${botId}
     `
+    // TODO: for knowledge, only include relevant topics (RAG?)
     const personalityProfile = {
         summary: latestBot.personality_summary ?? "",
         interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name!, weight: r.magnitude! })),
@@ -218,27 +219,12 @@ export default async function crawl(logTime: Date) {
             where bot_id = ${botId} ${traitDecayFilter}
         `;
 
-        // Update knowledge: overwrite existing topics, insert new ones
         const knowledgeUpdates = result.personality_updates.knowledge;
         if (knowledgeUpdates.length > 0) {
-            const existingKnowledgeTopics = new Set(
-                (await tx<{ topic: string }[]>`select topic from knowledge where bot_id = ${botId}`).map(r => r.topic.toLowerCase())
-            );
-            const existingKnowledge = knowledgeUpdates.filter(k => existingKnowledgeTopics.has(k.topic.toLowerCase()));
-            const newKnowledge = knowledgeUpdates.filter(k => !existingKnowledgeTopics.has(k.topic.toLowerCase()));
-
-            if (existingKnowledge.length > 0) {
-                const topics = existingKnowledge.map(k => k.topic.toLowerCase());
-                const summaries = existingKnowledge.map(k => k.knowledge);
-                await tx`
-                    update knowledge set summary = updates.summary
-                    from unnest(${topics}::text[], ${summaries}::text[]) as updates(topic, summary)
-                    where knowledge.bot_id = ${botId} and lower(knowledge.topic) = updates.topic
-                `;
-            }
-
-            if (newKnowledge.length > 0)
-                await tx`insert into knowledge ${sql(newKnowledge.map(k => ({ bot_id: botId, topic: k.topic, summary: k.knowledge })))}`;
+            await tx`
+                insert into knowledge ${sql(knowledgeUpdates.map(k => ({ bot_id: botId, topic: k.topic, summary: k.knowledge })))}
+                on conflict (bot_id, lower(topic)) do update set summary = excluded.summary
+            `;
         }
     })
 
