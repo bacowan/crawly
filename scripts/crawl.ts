@@ -7,6 +7,18 @@ import { JSDOM } from "jsdom";
 
 const llmService = GeminiLlmService
 
+const getRandomPageUrl = async () => {
+    const randomWikiPageUrl = "https://en.wikipedia.org/w/api.php?list=random&format=json&action=query&rnlimit=1&rnnamespace=0"
+    const result = await fetch(randomWikiPageUrl)
+    if (result.ok) {
+        const body = await result.json()
+        const pageName = body.query.random[0]?.title
+        if (pageName) {
+            return `https://en.wikipedia.org/wiki/${encodeURIComponent(pageName)}`
+        }
+    }
+}
+
 
 function extractText(html: string, url: string) {
   const dom = new JSDOM(html, { url });
@@ -71,7 +83,14 @@ export default async function crawl(logTime: Date) {
 
             if (interestingLink === undefined) {
                 // there are no links at all for this bot. Go to the default page.
-                interestingLink = config["default-crawl-url"]
+                const randomPageUrl = await getRandomPageUrl()
+                if (randomPageUrl) {
+                    interestingLink = randomPageUrl
+                }
+                else {
+                    // TODO: Error handling
+                    return
+                }
             }
         }
 
@@ -206,7 +225,17 @@ export default async function crawl(logTime: Date) {
 
 }
 
-crawl().catch(err => {
-  console.error(err);
-  process.exit(1);
-}).finally(() => sql.end());
+(async () => {
+    const now = new Date()
+    try {
+        for (let i = 0; i < 1; i++) {
+            const logHour = new Date(now.getTime() + i * 60 * 60 * 1000);
+            await crawl(logHour);
+        }
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
+    } finally {
+        sql.end();
+    }
+})();

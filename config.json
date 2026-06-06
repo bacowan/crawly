@@ -2,5 +2,5 @@
     "prompts": {
 
     },
-    "default-crawl-url": "https://en.wikipedia.org/wiki/Special:Random"
+    "default-crawl-url": "https://en.wikipedia.org/api/rest_v1/page/random/summary"
 }

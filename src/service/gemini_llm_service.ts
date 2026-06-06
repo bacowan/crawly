@@ -35,7 +35,7 @@ const GeminiLlmService: LlmService = {
 
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
-            contents: "Explain how AI works in a few words",
+            contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: z.toJSONSchema(PageAnalysisSchema)
