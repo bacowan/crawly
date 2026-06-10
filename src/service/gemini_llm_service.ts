@@ -11,10 +11,16 @@ if (!GEMINI_API_KEY) {
     throw "GEMINI_API_KEY not configured"
 }
 
+const EMBEDDING_MODEL = "text-embedding-004"
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const GeminiLlmService: LlmService = {
     processPage: async (pageText: string, personality: PersonalityProfile): Promise<PageAnalysis> => {
+        const knowledgeSection = personality.knowledge.length > 0
+            ? `Things you already know that may be relevant:\n${personality.knowledge.map(k => `- ${k}`).join("\n")}`
+            : "You have no prior knowledge that seems relevant to this page."
+
         const prompt = `You are a bot that develops a personality by browsing the web. You have no domain knowledge about anything except for that mentioned.
 
             Here is your current personality and interests:
@@ -24,6 +30,8 @@ const GeminiLlmService: LlmService = {
             - links: information about links in the page
             ${JSON.stringify(personality, null, 2)}
 
+            ${knowledgeSection}
+
             You have just read the following page:
             Content: ${pageText}
 
@@ -31,7 +39,8 @@ const GeminiLlmService: LlmService = {
             - Was there anything here that genuinely relates to your existing interests, or was it mostly irrelevant?
             - Was anything truly surprising, or was it what you expected?
             - Are there topics worth exploring further, or would you rather move on?
-            - How does this page actually make you feel — including if the answer is "nothing much"?`
+            - How does this page actually make you feel — including if the answer is "nothing much"?
+            - Are there any specific facts worth remembering that you didn't already know?`
 
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,
@@ -47,6 +56,16 @@ const GeminiLlmService: LlmService = {
         else {
             throw "Failed to get response"
         }
+    },
+
+    embedText: async (text: string): Promise<number[]> => {
+        const response = await ai.models.embedContent({
+            model: EMBEDDING_MODEL,
+            contents: [text],
+        });
+        const values = response.embeddings?.[0]?.values
+        if (!values) throw "Failed to get embedding"
+        return values
     }
 }
 

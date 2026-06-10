@@ -7,6 +7,8 @@ import { JSDOM } from "jsdom";
 
 const llmService = GeminiLlmService
 
+const SIMILARITY_THRESHOLD = 0.15
+
 // --- helpers ---
 
 const getRandomPageUrl = async () => {
@@ -91,16 +93,26 @@ async function fetchNextPage(botId: string): Promise<{ html: string, url: string
     }
 }
 
-async function getPersonalityProfile(botId: string, summary: string): Promise<PersonalityProfile> {
-    const rows = await sql<{ name: string, magnitude: number, type: string }[]>`
+async function getPersonalityProfile(botId: string, summary: string, pageEmbedding: number[]): Promise<PersonalityProfile> {
+    const profileRows = await sql<{ name: string, magnitude: number, type: string }[]>`
         select name, magnitude, 'interest' as type from interests where bot_id = ${botId}
         union all
         select name, magnitude, 'trait' as type from personality where bot_id = ${botId}
     `
+
+    const embedding = JSON.stringify(pageEmbedding)
+    const knowledgeRows = await sql<{ content: string }[]>`
+        select content from knowledge
+        where bot_id = ${botId}
+        order by embedding <=> ${embedding}::vector
+        limit 5
+    `
+
     return {
         summary: summary ?? "",
-        interests: rows.filter(r => r.type === 'interest').map(r => ({ name: r.name, weight: r.magnitude })),
-        traits: rows.filter(r => r.type === 'trait').map(r => ({ name: r.name, weight: r.magnitude })),
+        interests: profileRows.filter(r => r.type === 'interest').map(r => ({ name: r.name, weight: r.magnitude })),
+        traits: profileRows.filter(r => r.type === 'trait').map(r => ({ name: r.name, weight: r.magnitude })),
+        knowledge: knowledgeRows.map(r => r.content),
     }
 }
 
@@ -123,6 +135,20 @@ async function saveResults(botId: string, page: { html: string, url: string }, a
                 initial_interest: index
             })))}
         `
+
+        for (const fact of analysis.knowledge_updates) {
+            const embedding = await llmService.embedText(fact)
+            const embeddingJson = JSON.stringify(embedding)
+            await tx`
+                delete from knowledge
+                where bot_id = ${botId}
+                and embedding <=> ${embeddingJson}::vector < ${SIMILARITY_THRESHOLD}
+            `
+            await tx`
+                insert into knowledge (bot_id, content, embedding, source_page)
+                values (${botId}, ${fact}, ${embeddingJson}::vector, ${crawlRow.id})
+            `
+        }
 
         const ADJUST = 0.1;
         const DECAY = 0.05;
@@ -186,8 +212,10 @@ async function saveResults(botId: string, page: { html: string, url: string }, a
 export default async function crawl(logTime: Date) {
     const bot = await getBot()
     const page = await fetchNextPage(bot.id)
-    const profile = await getPersonalityProfile(bot.id, bot.personality_summary)
-    const analysis = await llmService.processPage(extractText(page.html, page.url), profile)
+    const pageText = extractText(page.html, page.url)
+    const pageEmbedding = await llmService.embedText(pageText)
+    const profile = await getPersonalityProfile(bot.id, bot.personality_summary, pageEmbedding)
+    const analysis = await llmService.processPage(pageText, profile)
     await saveResults(bot.id, page, analysis, logTime)
 }
 
