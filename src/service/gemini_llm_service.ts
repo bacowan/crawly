@@ -27,11 +27,11 @@ const GeminiLlmService: LlmService = {
             You have just read the following page:
             Content: ${pageText}
 
-            Analyze the page from your perspective. Consider:
-            - What stands out to you given your existing interests?
-            - Did anything surprise or intrigue you?
-            - Are there any new topics you find yourself curious about?
-            - How does this page make you feel?`
+            Analyze the page honestly from your perspective. Most pages are unremarkable — indifference or mild boredom is a completely valid and expected reaction. Be selective and critical; do not manufacture enthusiasm. Consider:
+            - Was there anything here that genuinely relates to your existing interests, or was it mostly irrelevant?
+            - Was anything truly surprising, or was it what you expected?
+            - Are there topics worth exploring further, or would you rather move on?
+            - How does this page actually make you feel — including if the answer is "nothing much"?`
 
         const response = await ai.models.generateContent({
             model: GEMINI_MODEL,

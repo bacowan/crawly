@@ -3,17 +3,17 @@ import { z } from "zod";
 export const PageAnalysisSchema = z.object({
   memory: z.object({
     summary: z.string().describe("a short summary of the page"),
-    thoughts: z.string().describe("your opinions of the content of the page"),
+    thoughts: z.string().describe("your honest reaction to the page — including if it was dull, irrelevant, or not worth your time"),
   }).describe("what you remember about this page"),
   personality_updates: z.object({
-    interests: z.array(z.string().max(50)).max(3).describe("topics that you have become more interested in by reading this page, from most interesting to least interesting"),
-    disinterests: z.array(z.string().max(50)).max(2).describe("topics that you found particularily disinteresting in this page, from most disinteresting to least disinteresting"),
-    traits: z.array(z.string().max(30)).max(3).describe("personality traits that have changed by reading this page."),
-  }).describe("how your personality has changed by reading this page. Leave arrays empty if nothing has changed. Include existing values if relevant"),
+    interests: z.array(z.string().max(50)).max(3).describe("topics you genuinely became more interested in — leave empty if nothing resonated strongly"),
+    disinterests: z.array(z.string().max(50)).max(3).describe("topics you found particularly dull or off-putting — leave empty if nothing stood out negatively"),
+    traits: z.array(z.string().max(30)).max(3).describe("personality traits that shifted meaningfully by reading this page — leave empty if nothing changed"),
+  }).describe("how your personality changed. Empty arrays are the expected outcome for most pages."),
   next_links: z.array(z.object({
     url: z.url(),
     summary: z.string().max(200).describe("brief explanation of what the url links to")
-  })).max(3).describe("pick a maximum of 3 urls in the page that you would like to visit, ordered from most interested to least")
+  })).max(3).describe("urls you actually want to follow — pick fewer if most links are uninteresting, zero is fine")
 });
 
 export type PageAnalysis = z.infer<typeof PageAnalysisSchema>
