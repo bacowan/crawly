@@ -136,18 +136,25 @@ async function saveResults(botId: string, page: { html: string, url: string }, a
             })))}
         `
 
-        for (const fact of analysis.knowledge_updates) {
-            const embedding = await llmService.embedText(fact)
-            const embeddingJson = JSON.stringify(embedding)
+        if (analysis.knowledge_updates.length > 0) {
+            const embeddings = await Promise.all(
+                analysis.knowledge_updates.map(fact => llmService.embedText(fact))
+            )
+            const embeddingJsons = embeddings.map(e => JSON.stringify(e))
             await tx`
                 delete from knowledge
                 where bot_id = ${botId}
-                and embedding <=> ${embeddingJson}::vector < ${SIMILARITY_THRESHOLD}
+                and exists (
+                    select 1 from unnest(${embeddingJsons}::vector[]) as v
+                    where embedding <=> v < ${SIMILARITY_THRESHOLD}
+                )
             `
-            await tx`
-                insert into knowledge (bot_id, content, embedding, source_page)
-                values (${botId}, ${fact}, ${embeddingJson}::vector, ${crawlRow.id})
-            `
+            await tx`insert into knowledge ${sql(analysis.knowledge_updates.map((fact, i) => ({
+                bot_id: botId,
+                content: fact,
+                embedding: embeddings[i],   // number[], serialized automatically
+                source_page: crawlRow.id,
+            })))}`
         }
 
         const ADJUST = 0.1;
@@ -213,7 +220,7 @@ export default async function crawl(logTime: Date) {
     const bot = await getBot()
     const page = await fetchNextPage(bot.id)
     const pageText = extractText(page.html, page.url)
-    const pageEmbedding = await llmService.embedText(pageText)
+    const pageEmbedding = await llmService.embedText(pageText.slice(0, 1500))
     const profile = await getPersonalityProfile(bot.id, bot.personality_summary, pageEmbedding)
     const analysis = await llmService.processPage(pageText, profile)
     await saveResults(bot.id, page, analysis, logTime)
